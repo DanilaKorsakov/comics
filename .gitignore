@@ -1,0 +1,13 @@
+/.cache/
+/.config/
+/.upm/
+/venv/
+/.idea/
+*.breakpoints
+*.replit
+*.lock
+*.toml
+*.nix
+replit_zip_error_log.txt
+*.env
+*.gitattributes
