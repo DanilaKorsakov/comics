@@ -118,8 +118,6 @@ def publish_comic_to_group(token, group_id, version, filename, comment):
     response = requests.post(url, params=params)
     response.raise_for_status()
 
-    os.remove(filename)
-
 
 def get_last_comic_num():
   
@@ -146,11 +144,14 @@ def main():
     version = 5.131
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     group_id = int(os.getenv('VK_GROUP_ID'))
-    comic_num = generate_random_comic()
-    image_url, comment, title = get_comic_info(comic_num)
-    filename = save_image(title, image_url)
+    try:
+        comic_num = generate_random_comic()
+        image_url, comment, title = get_comic_info(comic_num)
+        filename = save_image(title, image_url)
     
-    publish_comic_to_group(vk_access_token, group_id, version, filename, comment)
+        publish_comic_to_group(vk_access_token, group_id, version, filename, comment)
+    finally:
+        os.remove(filename)
 
 
 if __name__ == "__main__":
