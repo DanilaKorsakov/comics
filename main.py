@@ -6,17 +6,17 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 
-def get_comics_info(comics_id):
+def get_comic_info(comic_id):
 
-    url = f'https://xkcd.com/{comics_id}/info.0.json'
+    url = f'https://xkcd.com/{comic_id}/info.0.json'
     response = requests.get(url)
     response.raise_for_status()
 
-    answer = response.json()
+    response_json = response.json()
     
-    image_url = answer['img']
-    comment = answer['alt']
-    name = answer['title']
+    image_url = response_json['img']
+    comment = response_json['alt']
+    name = response_json['title']
 
     return image_url, comment, name
   
@@ -66,15 +66,15 @@ def upload_to_server(token, group_id, version, filename):
         response = requests.post(url, files=files)
         response.raise_for_status()
 
-    answer = response.json()
-    server = answer['server']
-    response_hash = answer['hash']
-    photo = answer['photo']
+    response_json = response.json()
+    server = response_json['server']
+    response_hash = response_json['hash']
+    photo = response_json['photo']
 
     return server, response_hash, photo
 
 
-def upload_comics_to_wall(token, group_id, version, filename):
+def upload_comic_to_wall(token, group_id, version, filename):
 
     server, response_hash, photo = upload_to_server(token,group_id,version,filename)
 
@@ -95,11 +95,11 @@ def upload_comics_to_wall(token, group_id, version, filename):
     return response.json()['response']
 
 
-def publish_comics_to_group(token, group_id, version, filename, comment):
+def publish_comic_to_group(token, group_id, version, filename, comment):
 
     url = 'https://api.vk.com/method/wall.post'
 
-    saved_image_info = upload_comics_to_wall(token, group_id, version, filename)
+    saved_image_info = upload_comic_to_wall(token, group_id, version, filename)
 
     owner_id = saved_image_info[0]['owner_id']
     media_id = saved_image_info[0]['id']
@@ -121,22 +121,22 @@ def publish_comics_to_group(token, group_id, version, filename, comment):
     os.remove(filename)
 
 
-def get_last_comics_num():
+def get_last_comic_num():
   
-    last_comics_url = "https://xkcd.com/info.0.json"
-    response = requests.get(last_comics_url)
+    last_comic_url = "https://xkcd.com/info.0.json"
+    response = requests.get(last_comic_url)
     response.raise_for_status()
   
     return response.json()["num"]
 
 
-def generate_random_comics():
+def generate_random_comic():
 
-    last_comics_num = get_last_comics_num()
+    last_comic_num = get_last_comic_num()
 
-    random_comics_num = random.randint(1, last_comics_num)
+    random_comic_num = random.randint(1, last_comic_num)
 
-    return random_comics_num
+    return random_comic_num
 
 
 def main():
@@ -146,11 +146,11 @@ def main():
     version = 5.131
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     group_id = int(os.getenv('VK_GROUP_ID'))
-    comics_num = generate_random_comics()
-    image_url, comment, title = get_comics_info(comics_num)
+    comic_num = generate_random_comic()
+    image_url, comment, title = get_comic_info(comic_num)
     filename = save_image(title, image_url)
     
-    publish_comics_to_group(vk_access_token, group_id, version, filename, comment)
+    publish_comic_to_group(vk_access_token, group_id, version, filename, comment)
 
 
 if __name__ == "__main__":
