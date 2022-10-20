@@ -53,7 +53,7 @@ def get_upload_url(group_id, token, version):
     return response.json()['response']['upload_url']
 
 
-def upload_to_server(token, group_id, version, filename):
+def upload_image_to_server(token, group_id, version, filename):
 
     url = get_upload_url(group_id,token,version)
 
@@ -76,7 +76,7 @@ def upload_to_server(token, group_id, version, filename):
 
 def upload_comic_to_wall(token, group_id, version, filename):
 
-    server, response_hash, photo = upload_to_server(token,group_id,version,filename)
+    server, response_hash, photo = upload_image_to_server(token,group_id,version,filename)
 
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
 
@@ -92,17 +92,17 @@ def upload_comic_to_wall(token, group_id, version, filename):
     response = requests.post(url, params=params)
     response.raise_for_status()
 
-    return response.json()['response']
+    owner_id = response.json()['response'][0]['owner_id']
+    media_id = response.json()['response'][0]['id']
+
+    return owner_id, media_id
 
 
 def publish_comic_to_group(token, group_id, version, filename, comment):
 
     url = 'https://api.vk.com/method/wall.post'
 
-    saved_image_info = upload_comic_to_wall(token, group_id, version, filename)
-
-    owner_id = saved_image_info[0]['owner_id']
-    media_id = saved_image_info[0]['id']
+    owner_id, media_id = upload_comic_to_wall(token, group_id, version, filename)
 
     attachments = f'photo{owner_id}_{media_id}'
 
