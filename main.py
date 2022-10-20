@@ -6,20 +6,28 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 
-def get_comic_info(comic_id):
+def generate_random_comic():
 
-    url = f'https://xkcd.com/{comic_id}/info.0.json'
-    response = requests.get(url)
+    last_comic_url = "https://xkcd.com/info.0.json"
+    response = requests.get(last_comic_url)
+    response.raise_for_status()
+
+    last_comic_num = response.json()["num"]
+
+    random_comic_num = random.randint(1, last_comic_num)
+
+    comic_url = f'https://xkcd.com/{random_comic_num}/info.0.json'
+    response = requests.get(comic_url)
     response.raise_for_status()
 
     response_json = response.json()
-    
+
     image_url = response_json['img']
     comment = response_json['alt']
     name = response_json['title']
 
     return image_url, comment, name
-  
+
 
 def get_extension(url):
     path = urlparse(url).path
@@ -46,7 +54,7 @@ def get_upload_url(group_id, token, version):
       'v': version
     }
   
-    url='https://api.vk.com/method/photos.getWallUploadServer'
+    url = 'https://api.vk.com/method/photos.getWallUploadServer'
     response = requests.get(url, params=params)
     response.raise_for_status()
 
@@ -119,24 +127,6 @@ def publish_comic_to_group(token, group_id, version, filename, comment):
     response.raise_for_status()
 
 
-def get_last_comic_num():
-  
-    last_comic_url = "https://xkcd.com/info.0.json"
-    response = requests.get(last_comic_url)
-    response.raise_for_status()
-  
-    return response.json()["num"]
-
-
-def generate_random_comic():
-
-    last_comic_num = get_last_comic_num()
-
-    random_comic_num = random.randint(1, last_comic_num)
-
-    return random_comic_num
-
-
 def main():
 
     load_dotenv()
@@ -145,8 +135,7 @@ def main():
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     group_id = int(os.getenv('VK_GROUP_ID'))
     try:
-        comic_num = generate_random_comic()
-        image_url, comment, title = get_comic_info(comic_num)
+        image_url, comment, title = generate_random_comic()
         filename = save_image(title, image_url)
     
         publish_comic_to_group(vk_access_token, group_id, version, filename, comment)
