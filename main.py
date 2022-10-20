@@ -46,14 +46,9 @@ def save_image(name, url):
     return filename
 
 
-def get_upload_url(group_id, token, version):
+def get_upload_url(params):
 
-    params = {
-      'group_id': group_id,
-      'access_token': token,
-      'v': version
-    }
-  
+
     url = 'https://api.vk.com/method/photos.getWallUploadServer'
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -61,9 +56,7 @@ def get_upload_url(group_id, token, version):
     return response.json()['response']['upload_url']
 
 
-def upload_image_to_server(token, group_id, version, filename):
-
-    url = get_upload_url(group_id,token,version)
+def upload_image_to_server(upload_url, filename):
 
     with open(filename, 'rb') as file:
       
@@ -71,7 +64,7 @@ def upload_image_to_server(token, group_id, version, filename):
             'photo': file
         }
 
-        response = requests.post(url, files=files)
+        response = requests.post(upload_url, files=files)
         response.raise_for_status()
 
     response_json = response.json()
@@ -82,22 +75,18 @@ def upload_image_to_server(token, group_id, version, filename):
     return server, response_hash, photo
 
 
-def upload_comic_to_wall(token, group_id, version, filename):
-
-    server, response_hash, photo = upload_image_to_server(token,group_id,version,filename)
+def upload_comic_to_wall(params, server, response_hash, photo):
 
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
+    new_upload_params = params.copy()
 
-    params = {
-        'access_token': token,
+    new_upload_params.update({
         'photo': photo,
-        'v': version,
-        'group_id': group_id,
         'server': server,
         'hash': response_hash
-    }
+    })
 
-    response = requests.post(url, params=params)
+    response = requests.post(url, params=new_upload_params)
     response.raise_for_status()
 
     owner_id = response.json()['response'][0]['owner_id']
@@ -106,24 +95,21 @@ def upload_comic_to_wall(token, group_id, version, filename):
     return owner_id, media_id
 
 
-def publish_comic_to_group(token, group_id, version, filename, comment):
+def publish_comic_to_group(params, owner_id, media_id, comment):
 
     url = 'https://api.vk.com/method/wall.post'
-
-    owner_id, media_id = upload_comic_to_wall(token, group_id, version, filename)
+    new_publish_params = params.copy()
 
     attachments = f'photo{owner_id}_{media_id}'
 
-    params = {
-      'access_token': token,
-      'v': version,
+    new_publish_params.update({
       'attachments': attachments,
-      'owner_id': -group_id,
+      'owner_id': -new_publish_params['group_id'],
       'message': comment,
       'from_group': '1'
-    }
-  
-    response = requests.post(url, params=params)
+    })
+
+    response = requests.post(url, params=new_publish_params)
     response.raise_for_status()
 
 
@@ -135,10 +121,18 @@ def main():
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     group_id = int(os.getenv('VK_GROUP_ID'))
     try:
+        params = {
+            'access_token': vk_access_token,
+            'v': version,
+            'group_id': group_id,
+        }
+
         image_url, comment, title = generate_random_comic()
         filename = save_image(title, image_url)
-    
-        publish_comic_to_group(vk_access_token, group_id, version, filename, comment)
+        upload_url = get_upload_url(params)
+        server, response_hash, photo = upload_image_to_server(upload_url, filename)
+        owner_id, media_id = upload_comic_to_wall(params, server, response_hash, photo)
+        publish_comic_to_group(params, owner_id, media_id, comment)
     finally:
         os.remove(filename)
 
