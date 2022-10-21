@@ -20,11 +20,11 @@ def generate_random_comic():
     response = requests.get(comic_url)
     response.raise_for_status()
 
-    response_json = response.json()
+    random_comic_response = response.json()
 
-    image_url = response_json['img']
-    comment = response_json['alt']
-    name = response_json['title']
+    image_url = random_comic_response['img']
+    comment = random_comic_response['alt']
+    name = random_comic_response['title']
 
     return image_url, comment, name
 
@@ -57,6 +57,7 @@ def get_upload_url(token, version, group_id):
     url = 'https://api.vk.com/method/photos.getWallUploadServer'
     response = requests.get(url, params=params)
     response.raise_for_status()
+    check_response(response.json())
 
     return response.json()['response']['upload_url']
 
@@ -72,11 +73,12 @@ def upload_image_to_server(upload_url, filename):
         response = requests.post(upload_url, files=files)
 
     response.raise_for_status()
+    check_response(response.json())
 
-    response_json = response.json()
-    server = response_json['server']
-    response_hash = response_json['hash']
-    photo = response_json['photo']
+    upload_response = response.json()
+    server = upload_response['server']
+    response_hash = upload_response['hash']
+    photo = upload_response['photo']
 
     return server, response_hash, photo
 
@@ -96,9 +98,12 @@ def upload_comic_to_wall(token, version, group_id, server, response_hash, photo)
 
     response = requests.post(url, params=params)
     response.raise_for_status()
+    check_response(response.json())
 
-    owner_id = response.json()['response'][0]['owner_id']
-    media_id = response.json()['response'][0]['id']
+    upload_response = response.json()['response'][0]
+
+    owner_id = upload_response['owner_id']
+    media_id = upload_response['id']
 
     return owner_id, media_id
 
@@ -120,6 +125,14 @@ def publish_comic_to_group(token, version, group_id, owner_id, media_id, comment
 
     response = requests.post(url, params=params)
     response.raise_for_status()
+    check_response(response.json())
+
+
+def check_response(response):
+    if "error" in response:
+        message = response["error"]["error_msg"]
+        error_code = response["error"]["error_code"]
+        raise requests.HTTPError(error_code, message)
 
 
 def main():
